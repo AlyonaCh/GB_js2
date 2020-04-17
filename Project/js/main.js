@@ -2,7 +2,7 @@ const goods = [
     { title: 'Shirt', price: 150 },
     { title: 'Socks', price: 50 },
     { title: 'Jacket', price: 350 },
-    { title: 'Shoes', price: 250 },
+    { title: 'Shoes', price: 251 },
   ];
 
   const goodsBlock = document.querySelector('.goods-list');
