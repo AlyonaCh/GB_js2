@@ -1,24 +1,24 @@
-// const goods = [
-//     { title: 'Shirt', price: 150 },
-//     { title: 'Socks', price: 50 },
-//     { title: 'Jacket', price: 350 },
-//     { title: 'Shoes', price: 251 },
-//   ];
 
-//   const goodsBlock = document.querySelector('.goods-list');
-  
-//   const renderGoodsItem = (title = 'title', price = 0) => {
-//     return `<div class="goods-item"><h3>${title}</h3><p>${price}</p><button class="item-button" type="button">Купить</button><img src="" alt=""></div>`;
-//   };
-  
-//   const renderGoodsList = (list) => {
-//     return  list.map(item => renderGoodsItem(item.title, item.price)).join(' ');
-//     // return goodsList;
-//     // goodsBlock.innerHTML = goodsList;
-//   }
-  
-//   goodsBlock.innerHTML = renderGoodsList(goods);
 const image = 'https://placehold.it/200x150';
+const API_URL = 'https://raw.githubusercontent.com/AlyonaCh/GB_js2/branch-2/Project/server';
+
+
+
+document.querySelector('.cart-button').addEventListener('click', () => {
+  document.querySelector('.cart-block').classList.toggle('invisible');
+});
+
+document.querySelector('.cart-block').addEventListener ('click', (evt) => {
+  if (evt.target.classList.contains ('del-btn')) {
+    userCart.removeProduct (evt.target);
+  }
+})
+
+document.querySelector('.goods-list').addEventListener ('click', (evt) => {
+  if (evt.target.classList.contains ('item-button')) {
+    userCart.addProduct(evt.target);
+  }
+})
 
 class GoodsItem {
   constructor(title, price, id, img) {
@@ -35,7 +35,7 @@ class GoodsItem {
                 <p>${this.price} $</p>
                 <button class="item-button" 
                   data-id="${this.id}"
-                  data-name="${this.title}"
+                  data-title="${this.title}"
                   data-image="${this.img}"
                   data-price="${this.price}">Купить</button>
               </div>
@@ -50,17 +50,19 @@ class GoodsList {
     this.goods = [];
   }
   fetchGoods() {
-    this.goods = [
-      { title: 'Notebook', price: 1000, id:0, img: image},
-      { title: 'Display', price: 200, id:1, img: image },
-      { title: 'Keyboard', price: 20, id:2, img: image },
-      { title: 'Mouse', price: 10, id:3, img: image },
-    ];
+    promiseReq(`${API_URL}/index.json`)
+      .then(dataJSON => {
+        this.goods = JSON.parse(dataJSON);
+      })
+      .then(() => {
+        this.render();
+      })
   }
   render() {
     let listHtml = '';
+    console.log(this.goods);
     this.goods.forEach(good => {
-      const goodItem = new GoodsItem(good.title, good.price);
+      const goodItem = new GoodsItem(good.product_name, good.price, good.id_product, image);
       listHtml += goodItem.render();
     });
     document.querySelector('.goods-list').innerHTML = listHtml;
@@ -70,14 +72,11 @@ class GoodsList {
     this.goods.forEach(good => {
       sum += parseInt(good.price);
     });
-    console.log('sum: '+sum);
   }
 }
 
 const list = new GoodsList();
 list.fetchGoods();
-list.render();
-list.sumItems();
 
 class CardItem extends GoodsItem {
   render() {
@@ -98,54 +97,91 @@ class CardItem extends GoodsItem {
   }
 }
 
-class CardList {
+class Cart {
+
+  constructor() {
+    this.cart = [];
+  }
+  
   addProduct(product){
     let productId = +product.dataset['id'];
-    let find = userCart.find (element => element.id === productId);
+    let find = this.cart.find (element => element.id === productId);
     if (!find) {
-      userCart.push ({
+      this.cart.push ({
         id: productId,
-        img: cartImage,
+        title: product.dataset['title'],
+        img: image,
         price: +product.dataset['price'],
         quantity: 1
       })
     } else {
       find.quantity++
     }
-    renderCart ()
+    this.renderCart();
   }
   removeProduct (product) {
     let productId = +product.dataset['id'];
-    let find = userCart.find (element => element.id === productId);
+    let find = this.cart.find (element => element.id === productId);
             if (find.quantity > 1) {
                 find.quantity--;
             } else {
-                userCart.splice(userCart.indexOf(find), 1);
+                this.cart.splice(this.cart.indexOf(find), 1);
                 document.querySelector(`.cart-item[data-id="${productId}"]`).remove()
             }
-            renderCart ();
+            this.renderCart ();
   }
   renderCart () {
       let allProducts = '';
-      for (el of userCart) {
-        allProducts += `<div  data-id="${el.id}">
+      for (let el of this.cart) {
+        allProducts += `<div class="cart-item" data-id="${el.id}">
                           <div>
                             <img src="${el.img}" alt="Some image">
                             <div>
-                              <p>${el.name}</p>
+                              <p>${el.title}</p>
                               <p>Quantity: ${el.quantity}</p>
-                              <p>$${el.price} each</p>
+                              <p>Price: $${el.price}</p>
                             </div>
                           </div>
                           <div>
-                            <p>${el.quantity * el.price}</p>
-                            <button  data-id="${el.id}">&times;</button>
+                            <p>Sum: ${el.quantity * el.price}</p>
+                            <button class="del-btn" data-id="${el.id}">Del</button>
                           </div>
                         </div>`
             }
 
             document.querySelector(`.cart-block`).innerHTML = allProducts;
   }
+}
+
+var userCart = new Cart();
+
+function makeGETRequest(url, resolve, reject) {
+  var xhr;
+
+  if (window.XMLHttpRequest) {
+    xhr = new XMLHttpRequest();
+  } else if (window.ActiveXObject) { 
+    xhr = new ActiveXObject("Microsoft.XMLHTTP");
+  }
+
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4) {
+      if(xhr.status === 200){
+        resolve(xhr.responseText);
+      }else{
+        reject ('error');
+      }
+    }
+  }
+
+  xhr.open('GET', url, true);
+  xhr.send();
+}
+
+function promiseReq(url) {
+  return new Promise ((res, rej) =>{
+    makeGETRequest(url, res, rej);
+  })
 }
 
 
