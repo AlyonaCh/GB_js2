@@ -19,6 +19,7 @@
   
 //   goodsBlock.innerHTML = renderGoodsList(goods);
 const image = 'https://placehold.it/200x150';
+const API_URL = 'https://raw.githubusercontent.com/GeekBrainsTutorial/online-store-api/master/responses';
 
 class GoodsItem {
   constructor(title, price, id, img) {
@@ -50,15 +51,14 @@ class GoodsList {
     this.goods = [];
   }
   fetchGoods() {
-    this.goods = [
-      { title: 'Notebook', price: 1000, id:0, img: image},
-      { title: 'Display', price: 200, id:1, img: image },
-      { title: 'Keyboard', price: 20, id:2, img: image },
-      { title: 'Mouse', price: 10, id:3, img: image },
-    ];
+    makeGETRequest(`${API_URL}/catalogData.json`, (goods) => {
+      this.goods = JSON.parse(goods);
+      console.log(this.goods);
+    })
   }
   render() {
     let listHtml = '';
+    console.log(this.goods);
     this.goods.forEach(good => {
       const goodItem = new GoodsItem(good.title, good.price);
       listHtml += goodItem.render();
@@ -76,8 +76,12 @@ class GoodsList {
 
 const list = new GoodsList();
 list.fetchGoods();
-list.render();
-list.sumItems();
+setTimeout(() => {
+  list.render();
+}, 1000);
+
+
+
 
 class CardItem extends GoodsItem {
   render() {
@@ -146,6 +150,25 @@ class CardList {
 
             document.querySelector(`.cart-block`).innerHTML = allProducts;
   }
+}
+
+function makeGETRequest(url, callback) {
+  var xhr;
+
+  if (window.XMLHttpRequest) {
+    xhr = new XMLHttpRequest();
+  } else if (window.ActiveXObject) { 
+    xhr = new ActiveXObject("Microsoft.XMLHTTP");
+  }
+
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4) {
+      callback(xhr.responseText);
+    }
+  }
+
+  xhr.open('GET', url, true);
+  xhr.send();
 }
 
 
